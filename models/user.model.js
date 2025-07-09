@@ -31,6 +31,10 @@ const userSchema = new mongoose.Schema(
             type: mongoose.Schema.ObjectId,
             ref: 'User',
         },
+        profilePicture: {
+        type: String,
+        default: '/public/defaults/default-avatar.png'
+    }    
     },
     {
         toJSON: { virtuals: true },

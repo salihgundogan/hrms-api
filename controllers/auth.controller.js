@@ -9,7 +9,11 @@ const register = async (req, res) => {
         if (userExists) {
             return res.status(400).json({ message: 'Bu e-posta adresi zaten kullanılıyor.' });
         }
-        const user = await User.create({ name, email, password, role });
+        let profilePicturePath;
+        if (req.file) {
+            profilePicturePath = `/uploads/profile_pictures/${req.file.filename}`;
+        }        
+        const user = await User.create({ name, email, password, role,profilePicture: profilePicturePath });
         res.status(201).json({
             message: 'Kullanıcı başarıyla oluşturuldu.',
             user: { id: user._id, name: user.name, email: user.email, role: user.role }

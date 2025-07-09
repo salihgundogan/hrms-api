@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const connectDB = require('./config/db');
+const path = require('path');
 
 
 const authRoutes = require('./routes/auth.routes');
@@ -15,6 +16,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/leaves', leaveRoutes);
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
     res.send('İK Yönetim Sistemi API Ana Sayfası');
