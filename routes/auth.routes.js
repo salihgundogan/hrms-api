@@ -3,6 +3,11 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 
+// Controller'dan tüm fonksiyonları çağırıyoruz.
+const {register,login,logout} = require('../controllers/auth.controller');
+// 'protect' middleware'ini çağırıyoruz, çünkü çıkış yapmak için önce giriş yapmış olmak gerekir.
+const { protect } = require('../middleware/auth.middleware');
+
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, 'public/uploads/profile_pictures/');
@@ -16,10 +21,10 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-const { register, login } = require('../controllers/auth.controller');
-
 router.post('/register', upload.single('profileImage'), register);
 
 router.post('/login', login);
+
+router.post('/logout', protect, logout);
 
 module.exports = router;
