@@ -3,7 +3,7 @@
 const User = require('../models/user.model');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { redisClient } = require('../config/redis'); 
+const { redisClient } = require('../config/redis.js'); 
 
 const register = async (req, res) => {
     try {

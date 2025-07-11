@@ -6,7 +6,6 @@ const redisClient = redis.createClient({
 
 redisClient.on('error', (err) => console.log('Redis Client Hatası', err));
 
-// Bağlantı fonksiyonunu ayrı bir şekilde tanımlıyoruz.
 const connectRedis = async () => {
     try {
         await redisClient.connect();
@@ -17,7 +16,6 @@ const connectRedis = async () => {
     }
 };
 
-// Hem istemcinin kendisini hem de bağlantı fonksiyonunu dışarıya açıyoruz.
 module.exports = {
     redisClient,
     connectRedis

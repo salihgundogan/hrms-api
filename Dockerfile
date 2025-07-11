@@ -1,14 +1,18 @@
 # Node.js'in 20. versiyonunu temel alarak başlıyoruz.
 FROM node:20
 
+# === YENİ EKLENEN KISIM ===
+# Konteynerin içine, healthcheck için gerekli olan 'curl' programını kuruyoruz.
+# 'apt-get update' ile paket listesini günceller, 'apt-get install' ile de kurarız.
+RUN apt-get update && apt-get install -y curl
+
 # Konteynerin içinde uygulamamızın yaşayacağı bir klasör oluşturuyoruz.
 WORKDIR /usr/src/app
 
-# Önce package.json ve package-lock.json dosyalarını kopyalıyoruz.
-# Bu, her kod değişikliğinde tüm paketlerin yeniden indirilmesini engeller.
+# Önce package.json dosyalarını kopyalıyoruz.
 COPY package*.json ./
 
-# Bağımlılıkları (express, mongoose vb.) yüklüyoruz.
+# Bağımlılıkları yüklüyoruz.
 RUN npm install
 
 # Projemizin geri kalan tüm dosyalarını konteynerin içine kopyalıyoruz.

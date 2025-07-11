@@ -1,6 +1,5 @@
 version: '3.8'
 services:
-  # 1. Servis: Bizim Node.js Uygulamamız
   app:
     build: .
     ports:
@@ -10,15 +9,18 @@ services:
       - MONGODB_URI=mongodb://mongo:27017/hrms-api-db
       - JWT_SECRET=${JWT_SECRET}
       - REDIS_URL=redis://redis:6379
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
     depends_on:
-      # DÜZELTME: Artık sadece servislerin başlamasını değil,
-      # "sağlıklı" olmalarını bekliyoruz.
       mongo:
-        condition: service_started # MongoDB için başlangıç yeterli
+        condition: service_started
       redis:
-        condition: service_healthy # Redis için sağlıklı olmasını bekle!
+        condition: service_healthy
 
-  # 2. Servis: MongoDB Veritabanı
   mongo:
     image: mongo:latest
     ports:
@@ -26,18 +28,24 @@ services:
     volumes:
       - mongo-data:/data/db
 
-  # 3. Servis: Redis Hafıza Veritabanı
   redis:
     image: redis:latest
     ports:
       - "6379:6379"
-    # YENİ EKLENEN KISIM: SAĞLIK KONTROLÜ
     healthcheck:
-      # Redis'in hazır olup olmadığını anlamak için 'redis-cli ping' komutunu kullan.
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s # Her 10 saniyede bir kontrol et
-      timeout: 5s   # Cevap için 5 saniye bekle
-      retries: 5    # 5 kere başarısız olursa sağlıksız kabul et
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  k6:
+    image: grafana/k6:latest
+    ports:
+      - "6565:6565"
+    volumes:
+      - ./stress-test.js:/tests/stress-test.js
+    depends_on:
+      app:
+        condition: service_healthy
 volumes:
   mongo-data:

@@ -37,8 +37,8 @@ const startServer = async () => {
         await connectRedis();
 
         // 3. Adım: ANCAK ikisi de başarılı olduktan SONRA, sunucuyu dinlemeye başlat.
-        app.listen(port, () => {
-            console.log(`Sunucu http://localhost:${port} adresinde çalışıyor.`);
+        app.listen(port, '0.0.0.0', () => {
+            console.log(`Sunucu http://localhost:${port} adresinde, dışarıdan gelen istekleri dinliyor.`);
         });
 
     } catch (error) {
