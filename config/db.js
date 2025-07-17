@@ -1,14 +1,20 @@
 
-const mongoose = require('mongoose');
+const { Sequelize } = require('sequelize');
 
-const connectDB = async () => {
-    try {
-        await mongoose.connect(process.env.MONGODB_URI);
-        console.log('MongoDB bağlantısı başarıyla kuruldu.');
-    } catch (error) {
-        console.error('MongoDB bağlantı hatası:', error.message);
-        process.exit(1);
+const sequelize = new Sequelize(
+    process.env.DB_NAME,      // Veritabanı adı (örn: 'hrms_db')
+    process.env.DB_USER,      // Kullanıcı adı (örn: 'postgres')
+    process.env.DB_PASSWORD,  // Şifre (örn: 'mysecretpassword')
+    {
+        host: process.env.DB_HOST, // Sunucu adresi (örn: 'postgres' - docker servis adı)
+        dialect: 'postgres',       // Hangi SQL veritabanını kullandığımızı belirtiyoruz.
+        
+        // Bu ayar, Sequelize'ın her veritabanı sorgusunu konsola yazdırmasını engeller.
+        // Bu, loglarımızın daha temiz kalmasını sağlar.
+        logging: false 
     }
-};
+);
 
-module.exports = connectDB;
+// Oluşturduğumuz bu ana bağlantı objesini (sequelize), projenin diğer
+// dosyalarında kullanabilmek için dışarıya açıyoruz (export).
+module.exports = sequelize;

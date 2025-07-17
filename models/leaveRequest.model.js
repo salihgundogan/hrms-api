@@ -1,37 +1,24 @@
+const { DataTypes } = require('sequelize');
 
-const mongoose = require('mongoose');
-
-const leaveRequestSchema = new mongoose.Schema(
-    {
-        employee: {
-            type: mongoose.Schema.ObjectId,
-            ref: 'User',
-            required: true,
-        },
+module.exports = (sequelize) => {
+    // Değişken oluşturmak yerine, sequelize.define'ın sonucunu doğrudan geri döndürüyoruz.
+    return sequelize.define('LeaveRequest', {
         startDate: {
-            type: Date,
-            required: [true, 'Başlangıç tarihi zorunludur.'],
+            type: DataTypes.DATE,
+            allowNull: false,
         },
         endDate: {
-            type: Date,
-            required: [true, 'Bitiş tarihi zorunludur.'],
+            type: DataTypes.DATE,
+            allowNull: false,
         },
         reason: {
-            type: String,
-            required: [true, 'İzin sebebi belirtilmelidir.'],
-            trim: true,
+            type: DataTypes.STRING,
+            allowNull: false,
         },
         status: {
-            type: String,
-            enum: ['pending', 'approved', 'rejected'],
-            default: 'pending',
+            type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+            allowNull: false,
+            defaultValue: 'pending',
         },
-    },
-    {
-        timestamps: true,
-    }
-);
-
-const LeaveRequest = mongoose.model('LeaveRequest', leaveRequestSchema);
-
-module.exports = LeaveRequest;
+    });
+};

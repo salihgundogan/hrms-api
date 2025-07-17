@@ -1,32 +1,49 @@
-version: '3.8'
 services:
   app:
     build: .
     ports:
       - "5001:5001"
+    # DÜZELTME: 'env_file' yerine, tüm değişkenleri burada açıkça tanımlıyoruz.
+    # Bu, en güvenilir yöntemdir.
     environment:
       - PORT=5001
-      - MONGODB_URI=mongodb://mongo:27017/hrms-api-db
-      - JWT_SECRET=${JWT_SECRET}
+      - DB_HOST=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=mysecretpassword
+      - DB_NAME=hrms_db
+      - DB_PORT=5432
+      - JWT_SECRET=${JWT_SECRET} 
       - REDIS_URL=redis://redis:6379
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001"]
       interval: 10s
       timeout: 10s
       retries: 5
-      start_period: 10s
+      start_period: 15s
     depends_on:
-      mongo:
-        condition: service_started
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
-
-  mongo:
-    image: mongo:latest
+    networks:
+      - hrms_network
+  postgres:
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=mysecretpassword
+      - POSTGRES_DB=hrms_db
     ports:
-      - "27017:27017"
+      - "5432:5432"
     volumes:
-      - mongo-data:/data/db
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hrms_network
 
   redis:
     image: redis:latest
@@ -37,6 +54,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - hrms_network
 
   k6:
     image: grafana/k6:latest
@@ -47,5 +66,12 @@ services:
     depends_on:
       app:
         condition: service_healthy
+    networks:
+      - hrms_network
+
+networks:
+  hrms_network:
+    driver: bridge
+
 volumes:
-  mongo-data:
+  postgres-data:

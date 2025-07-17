@@ -1,102 +1,76 @@
-// controllers/auth.controller.js
-
-const User = require('../models/user.model');
-const bcrypt = require('bcryptjs');
+const db = require('../models');
+const { User } = db;
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { redisClient } = require('../config/redis.js'); 
+const { redisClient } = require('../config/redis');
 
-const register = async (req, res) => {
+exports.register = async (req, res) => {
     try {
-        // Gelen isteğin gövdesinden (body) ve dosyasından (file) bilgileri alıyoruz.
         const { name, email, password, role } = req.body;
 
-        // E-posta veya şifre gelmemişse hata döndür.
-        if (!email || !password || !name) {
-            return res.status(400).json({ message: 'İsim, e-posta ve şifre alanları zorunludur.' });
+        const existingUser = await User.findOne({ where: { email } });
+        if (existingUser) {
+            return res.status(400).json({ message: 'Bu e‑posta adresi zaten kullanılıyor.' });
         }
 
-        // Bu e-posta ile daha önce bir kullanıcı kaydedilmiş mi diye kontrol et.
-        const userExists = await User.findOne({ email });
-        if (userExists) {
-            return res.status(400).json({ message: 'Bu e-posta adresi zaten kullanılıyor.' });
-        }
+        // DÜZELTME: Manuel hash'leme satırını siliyoruz.
+        // const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Yüklenecek dosya yolu için bir değişken oluşturalım.
-        let profilePicturePath;
-        if (req.file) {
-            // Veritabanına URL'den erişilebilecek göreceli yolu kaydediyoruz.
-            profilePicturePath = `/uploads/profile_pictures/${req.file.filename}`;
-        }
-
-        // Yeni bir kullanıcı oluştur.
-        // Şifrenin hash'lenmesi işlemi modelin içindeki pre-save hook'u ile otomatik olarak yapılır.
-        const user = await User.create({
+        // DÜZELTME: User.create'e şifreyi düz metin olarak veriyoruz.
+        // Modelin içindeki 'beforeCreate' hook'u hash'leme işini otomatik olarak yapacak.
+        const newUser = await User.create({
             name,
             email,
-            password,
+            password, // Düz metin şifre
             role,
-            profilePicture: profilePicturePath
         });
 
-        // Başarılı olduğuna dair 201 "Created" durum kodu ile yeni kullanıcıyı geri dön.
-        // Cevapta şifreyi göndermiyoruz.
-        res.status(201).json({
-            message: 'Kullanıcı başarıyla oluşturuldu.',
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                profilePicture: user.profilePicture
-            }
-        });
+        const userData = newUser.get({ plain: true });
+        delete userData.password;
 
+        return res.status(201).json({ message: 'Kullanıcı başarıyla oluşturuldu.', user: userData });
     } catch (error) {
-        // Herhangi bir hata olursa, 500 "Server Error" hatası gönder.
-        res.status(500).json({ message: 'Sunucuda bir hata oluştu.', error: error.message });
+        console.error('Register error:', error);
+        return res.status(500).json({ message: 'Sunucuda bir hata oluştu.', error: error.message });
     }
 };
 
+// ─────────────── LOGIN ───────────────
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-// === 2. KULLANICI GİRİŞİ FONKSİYONU (LOGIN) ===
-const login = async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ email }).select('+password');
+    // Şifre sütunu dâhil gelsin diye kendi scope’unu kullandık
+    const user = await User.scope('withPassword').findOne({ where: { email } });
 
-        if (!user || !(await bcrypt.compare(password, user.password))) {
-            return res.status(401).json({ message: 'E-posta veya şifre hatalı.' });
-        }
-
-        const token = jwt.sign(
-            { id: user._id, role: user.role },
-            process.env.JWT_SECRET,
-            { expiresIn: '1d' }
-        );
-
-        await redisClient.set(user._id.toString(), token, {
-            EX: 86400, // 1 gün
-        });
-
-        res.status(200).json({ message: 'Giriş başarılı.', token });
-    } catch (error) {
-        res.status(500).json({ message: 'Sunucuda bir hata oluştu.', error: error.message });
+    const isMatch = user && (await bcrypt.compare(password, user.password));
+    if (!isMatch) {
+      return res.status(401).json({ message: 'E‑posta veya şifre hatalı.' });
     }
+
+    const token = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    // Redis’e token yaz
+    await redisClient.set(user.id.toString(), token, { EX: 60 * 60 * 24 }); // 24 saat
+
+    return res.status(200).json({ message: 'Giriş başarılı.', token });
+  } catch (error) {
+    console.error('Login error:', error);
+    return res.status(500).json({ message: 'Sunucuda bir hata oluştu.', error: error.message });
+  }
 };
 
-// === 3. KULLANICI ÇIKIŞI FONKSİYONU (LOGOUT) ===
-const logout = async (req, res) => {
-    try {
-        await redisClient.del(req.user.id);
-        res.status(200).json({ message: 'Çıkış başarılı.' });
-    } catch (error) {
-        res.status(500).json({ message: 'Sunucuda bir hata oluştu.', error: error.message });
-    }
-};
-
-// Tüm fonksiyonları dışarıya açıyoruz.
-module.exports = {
-    register,
-    login,
-    logout,
+// ─────────────── LOGOUT ───────────────
+exports.logout = async (req, res) => {
+  try {
+    await redisClient.del(req.user.id.toString());
+    return res.status(200).json({ message: 'Çıkış başarılı.' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    return res.status(500).json({ message: 'Sunucuda bir hata oluştu.', error: error.message });
+  }
 };

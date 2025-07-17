@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/user.model');
-const { redisClient } = require('../config/redis'); 
-
+// DÜZELTME: Artık tüm modellerimizi, ilişkileri kuran 'models/index.js' dosyasından alıyoruz.
+const db = require('../models');
+const User = db.User;
+const { redisClient } = require('../config/redis');
 
 const protect = async (req, res, next) => {
     let token;
@@ -9,30 +10,34 @@ const protect = async (req, res, next) => {
         try {
             token = req.headers.authorization.split(' ')[1];
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            const user = await User.findById(decoded.id).select('-password');
+
+            // DÜZELTME: Mongoose'un .findById(id) komutu yerine,
+            // Sequelize'ın .findByPk(id) (Find by Primary Key) komutunu kullanıyoruz.
+            const user = await User.findByPk(decoded.id);
 
             if (!user) {
                 return res.status(401).json({ message: 'Bu token\'a sahip kullanıcı artık mevcut değil.' });
             }
 
-            // === YENİ EKLENEN KISIM: REDIS KONTROLÜ ===
-            // Redis'e gidip, bu kullanıcının ID'si ile kayıtlı olan token'ı alıyoruz.
-            const redisToken = await redisClient.get(user._id.toString());
+            // DÜZELTME: Mongoose'un ._id'si yerine, Sequelize'ın standart .id'sini kullanıyoruz.
+            const redisToken = await redisClient.get(user.id.toString());
 
-            // Eğer Redis'te böyle bir token yoksa (çıkış yapmış) veya
-            // Redis'teki token ile istekteki token eşleşmiyorsa (eski bir token kullanıyor olabilir),
-            // girişe izin verme.
             if (!redisToken || redisToken !== token) {
                 return res.status(401).json({ message: 'Geçersiz oturum. Lütfen tekrar giriş yapın.' });
             }
 
-            req.user = user;
+            // req.user'a şifre olmadan kullanıcıyı ekliyoruz.
+            // Modeldeki 'defaultScope' bunu zaten yapıyor ama burada da emin olabiliriz.
+            const { password, ...userWithoutPassword } = user.get({ plain: true });
+            req.user = userWithoutPassword;
+            
             next();
 
         } catch (error) {
             return res.status(401).json({ message: 'Yetkiniz yok, token geçersiz.' });
         }
     }
+
     if (!token) {
         return res.status(401).json({ message: 'Yetkiniz yok, token bulunamadı.' });
     }
@@ -40,7 +45,7 @@ const protect = async (req, res, next) => {
 
 const authorize = (...roles) => {
     return (req, res, next) => {
-        // Bu middleware çalıştığında, req.user'ın artık null olamayacağından eminiz.
+        // Bu fonksiyonun mantığı veritabanından bağımsız olduğu için aynı kalıyor.
         if (!roles.includes(req.user.role)) {
             return res.status(403).json({ message: 'Bu işlemi yapmak için yetkiniz bulunmamaktadır.' });
         }
@@ -49,4 +54,3 @@ const authorize = (...roles) => {
 };
 
 module.exports = { protect, authorize };
-

@@ -1,55 +1,51 @@
+const { DataTypes } = require('sequelize');
+const bcrypt = require('bcrypt');
 
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-
-const userSchema = new mongoose.Schema(
-    {
+module.exports = (sequelize) => {
+    // Değişken oluşturmak yerine, sequelize.define'ın sonucunu doğrudan geri döndürüyoruz.
+    return sequelize.define('User', {
         name: {
-            type: String,
-            required: [true, 'İsim alanı zorunludur.'],
-            trim: true,
+            type: DataTypes.STRING,
+            allowNull: false,
         },
         email: {
-            type: String,
-            required: [true, 'E-posta alanı zorunludur.'],
+            type: DataTypes.STRING,
+            allowNull: false,
             unique: true,
-            trim: true,
-            lowercase: true,
+            validate: {
+                isEmail: true,
+            },
         },
         password: {
-            type: String,
-            required: [true, 'Şifre alanı zorunludur.'],
-            minlength: [6, 'Şifre en az 6 karakter olmalıdır.'],
-            select: false,
+            type: DataTypes.STRING,
+            allowNull: false,
         },
         role: {
-            type: String,
-            enum: ['employee', 'manager', 'hr_admin'],
-            default: 'employee',
-        },
-        manager: {
-            type: mongoose.Schema.ObjectId,
-            ref: 'User',
+            type: DataTypes.ENUM('employee', 'manager', 'hr_admin'),
+            allowNull: false,
+            defaultValue: 'employee',
+            index: true
         },
         profilePicture: {
-        type: String,
-        default: '/public/defaults/default-avatar.png'
-    }    
-    },
-    {
-        toJSON: { virtuals: true },
-        toObject: { virtuals: true },
-    }
-);
-
-userSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) {
-        return next();
-    }
-    this.password = await bcrypt.hash(this.password, 12);
-    next();
-});
-
-const User = mongoose.model('User', userSchema);
-
-module.exports = User;
+            type: DataTypes.STRING,
+            defaultValue: '/public/defaults/default-avatar.png'
+        },
+    }, {
+        hooks: {
+            beforeCreate: async (user) => {
+                if (user.password) {
+                    const salt = await bcrypt.genSalt(10);
+                    user.password = await bcrypt.hash(user.password, salt);
+                }
+            },
+        },
+        defaultScope: {
+            attributes: { exclude: ['password'] },
+        },
+        scopes: {
+            withPassword: {
+                attributes: {},
+            },
+        },
+    });
+};
