@@ -1,4 +1,5 @@
 require('dotenv').config();
+const cors = require('cors'); // 1. ADIM: cors'u çağırıyoruz.
 const express = require('express');
 const path = require('path');
 
@@ -15,6 +16,8 @@ const userRoutes = require('./routes/user.routes');
 const leaveRoutes = require('./routes/leave.routes');
 
 const app = express();
+
+app.use(cors());
 
 // Middleware'ler
 app.use(express.json());

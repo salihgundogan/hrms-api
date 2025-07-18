@@ -38,6 +38,13 @@ module.exports = (sequelize) => {
                     user.password = await bcrypt.hash(user.password, salt);
                 }
             },
+            beforeUpdate: async (user) => {
+                // Sadece ve sadece 'password' alanı değiştirildiyse bu işlemi yap
+                if (user.changed('password')) {
+                    const salt = await bcrypt.genSalt(10);
+                    user.password = await bcrypt.hash(user.password, salt);
+                }
+            }
         },
         defaultScope: {
             attributes: { exclude: ['password'] },

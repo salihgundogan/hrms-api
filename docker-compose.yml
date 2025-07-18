@@ -57,18 +57,6 @@ services:
     networks:
       - hrms_network
 
-  k6:
-    image: grafana/k6:latest
-    ports:
-      - "6565:6565"
-    volumes:
-      - ./stress-test.js:/tests/stress-test.js
-    depends_on:
-      app:
-        condition: service_healthy
-    networks:
-      - hrms_network
-
 networks:
   hrms_network:
     driver: bridge
