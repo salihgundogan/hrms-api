@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 // DÜZELTME: Artık tüm modellerimizi, ilişkileri kuran 'models/index.js' dosyasından alıyoruz.
 const db = require('../models');
-const User = db.User;
+const {User} = db;
 const { redisClient } = require('../config/redis');
 
 const protect = async (req, res, next) => {

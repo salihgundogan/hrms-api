@@ -34,14 +34,14 @@ module.exports = (sequelize) => {
         hooks: {
             beforeCreate: async (user) => {
                 if (user.password) {
-                    const salt = await bcrypt.genSalt(10);
+                    const salt = await bcrypt.genSalt(12);
                     user.password = await bcrypt.hash(user.password, salt);
                 }
             },
             beforeUpdate: async (user) => {
                 // Sadece ve sadece 'password' alanı değiştirildiyse bu işlemi yap
                 if (user.changed('password')) {
-                    const salt = await bcrypt.genSalt(10);
+                    const salt = await bcrypt.genSalt(12);
                     user.password = await bcrypt.hash(user.password, salt);
                 }
             }

@@ -61,7 +61,7 @@ const importData = async () => {
         console.log('Şifreler hashleniyor...');
         const usersWithHashedPasswords = await Promise.all(
             usersToCreate.map(async (user) => {
-                const salt = await bcrypt.genSalt(10);
+                const salt = await bcrypt.genSalt(12);
                 user.password = await bcrypt.hash(user.password, salt);
                 return user;
             })

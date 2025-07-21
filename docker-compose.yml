@@ -3,8 +3,6 @@ services:
     build: .
     ports:
       - "5001:5001"
-    # DÜZELTME: 'env_file' yerine, tüm değişkenleri burada açıkça tanımlıyoruz.
-    # Bu, en güvenilir yöntemdir.
     environment:
       - PORT=5001
       - DB_HOST=postgres

@@ -11,7 +11,6 @@ exports.register = async (req, res) => {
         if (existingUser) {
             return res.status(400).json({ message: 'Bu e‑posta adresi zaten kullanılıyor.' });
         }
-        // Şifreyi DÜZ METİN olarak gönderiyoruz, hook halledecek.
         const newUser = await User.create({ name, email, password, role });
         return res.status(201).json({ message: 'Kullanıcı başarıyla oluşturuldu.', user: newUser });
     } catch (error) {
@@ -20,7 +19,6 @@ exports.register = async (req, res) => {
     }
 };
 
-// GİRİŞ FONKSİYONU
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -30,7 +28,6 @@ exports.login = async (req, res) => {
         if (!isMatch) {
             return res.status(401).json({ message: 'E‑posta veya şifre hatalı.' });
         }
-        // ... (token oluşturma ve gönderme kısmı) ...
         const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
         await redisClient.set(user.id.toString(), token, { EX: 60 * 60 * 24 });
         return res.status(200).json({ message: 'Giriş başarılı.', token });

@@ -95,11 +95,35 @@ const deleteUser = async (req, res) => {
         res.status(500).json({ message: 'Kullanıcı silinirken bir hata oluştu.' });
     }
 };
+const getMyTeam = async (req, res) => {
+    try {
+        // 'protect' middleware'inden gelen giriş yapmış yöneticinin ID'sini alıyoruz.
+        const managerId = req.user.id;
+
+        // Veritabanında, 'managerId' alanı bu yöneticinin ID'si ile eşleşen
+        // tüm kullanıcıları (yani çalışanlarını) buluyoruz.
+        const teamMembers = await User.findAll({
+            where: { managerId: managerId }
+        });
+
+        res.status(200).json({
+            message: 'Ekip üyeleri başarıyla getirildi.',
+            count: teamMembers.length,
+            users: teamMembers
+        });
+
+    } catch (error) {
+        console.error('Get My Team Error:', error);
+        res.status(500).json({ message: 'Ekip üyeleri getirilirken bir hata oluştu.' });
+    }
+};
+
 
 module.exports = {
     getMe,
     getAllUsers,
     updateMe,
     changePassword,
-    deleteUser
+    deleteUser,
+    getMyTeam
 };
