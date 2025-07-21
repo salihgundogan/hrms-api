@@ -2,7 +2,6 @@ const { DataTypes } = require('sequelize');
 const bcrypt = require('bcrypt');
 
 module.exports = (sequelize) => {
-    // Değişken oluşturmak yerine, sequelize.define'ın sonucunu doğrudan geri döndürüyoruz.
     return sequelize.define('User', {
         name: {
             type: DataTypes.STRING,
@@ -30,6 +29,16 @@ module.exports = (sequelize) => {
             type: DataTypes.STRING,
             defaultValue: '/public/defaults/default-avatar.png'
         },
+        isVerified: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false
+        },
+        verificationToken: {
+            type: DataTypes.STRING
+        },
+        verificationTokenExpires: {
+            type: DataTypes.DATE
+        }
     }, {
         hooks: {
             beforeCreate: async (user) => {
@@ -39,12 +48,12 @@ module.exports = (sequelize) => {
                 }
             },
             beforeUpdate: async (user) => {
-                // Sadece ve sadece 'password' alanı değiştirildiyse bu işlemi yap
                 if (user.changed('password')) {
                     const salt = await bcrypt.genSalt(12);
                     user.password = await bcrypt.hash(user.password, salt);
                 }
-            }
+            },
+            
         },
         defaultScope: {
             attributes: { exclude: ['password'] },
