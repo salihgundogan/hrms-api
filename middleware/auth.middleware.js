@@ -5,9 +5,9 @@ const db = require('../models');
 const {User} = db;
 const { redisClient } = require('../config/redis');
 
-// GÖREV 1: KİMLİK KONTROLÜ (Authentication)
 exports.protect = async (req, res, next) => {
     let token;
+
     if (req.headers.authorization?.startsWith('Bearer')) {
         try {
             token = req.headers.authorization.split(' ')[1];
@@ -17,18 +17,15 @@ exports.protect = async (req, res, next) => {
             if (!user) {
                 return res.status(401).json({ message: 'Bu token\'a sahip kullanıcı artık mevcut değil.' });
             }
-            
             const redisToken = await redisClient.get(user.id.toString());
             if (!redisToken || redisToken !== token) {
                 return res.status(401).json({ message: 'Geçersiz oturum. Lütfen tekrar giriş yapın.' });
             }
-            
-            // Kullanıcıyı isteğe ekle ve devam et
             req.user = user;
-            next();
+            return next();
 
         } catch (error) {
-            return res.status(401).json({ message: 'Yetkiniz yok, token geçersiz.' });
+            return res.status(401).json({ message: 'Yetkiniz yok, token geçersiz veya süresi dolmuş.' });
         }
     }
 
@@ -37,9 +34,7 @@ exports.protect = async (req, res, next) => {
     }
 };
 
-// GÖREV 2: E-POSTA DOĞRULAMA KONTROLÜ
 exports.isVerified = (req, res, next) => {
-    // Bu middleware, 'protect'ten sonra çalışır, bu yüzden req.user'ın var olduğunu biliriz.
     if (!req.user.isVerified) {
         return res.status(403).json({ 
             message: 'Erişim engellendi. Lütfen önce hesabınızı doğrulayın.' 
@@ -48,7 +43,7 @@ exports.isVerified = (req, res, next) => {
     next();
 };
 
-// GÖREV 3: YETKİ KONTROLÜ (Authorization)
+
 exports.authorize = (...roles) => {
     return (req, res, next) => {
         if (!roles.includes(req.user.role)) {

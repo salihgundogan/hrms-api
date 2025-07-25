@@ -38,7 +38,15 @@ module.exports = (sequelize) => {
         },
         verificationTokenExpires: {
             type: DataTypes.DATE
-        }
+        },
+        passwordResetToken: {
+            type: DataTypes.STRING,
+            defaultValue: null // Varsayılan olarak boş
+        },
+        passwordResetExpires: {
+            type: DataTypes.DATE,
+            defaultValue: null // Varsayılan olarak boş
+        },
     }, {
         hooks: {
             beforeCreate: async (user) => {

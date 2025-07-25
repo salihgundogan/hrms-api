@@ -1,25 +1,42 @@
+
 require('dotenv').config();
-const cors = require('cors'); // 1. ADIM: cors'u çağırıyoruz.
 const express = require('express');
+const cors = require('cors'); // cors'u çağırıyoruz.
 const path = require('path');
-
-// DÜZELTME: Artık tüm veritabanı yapımızı (sequelize bağlantısı ve tüm modeller)
-// doğrudan 'models' klasöründeki index.js dosyasından alıyoruz.
 const db = require('./models');
+const { connectRedis } = require('./config/redis'); 
 
-// Redis bağlantısı aynı kalıyor.
-const { connectRedis } = require('./config/redis');
-
-// Rotalarımız aynı kalıyor.
+// Rotalar
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const leaveRoutes = require('./routes/leave.routes');
 
 const app = express();
 
-app.use(cors());
+// === YENİ VE GÜNCELLENMİŞ CORS YAPILANDIRMASI ===
+// Hangi adreslerin bizim API'mize erişebileceğini bir listede tutuyoruz.
+const allowedOrigins = [
+    'http://localhost:5173', // Yerel geliştirme için
+    'https://hrms-frontend-j5zh.onrender.com'   
+];
 
-// Middleware'ler
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Eğer istek yapan adres (origin) izin verilenler listesindeyse veya
+    // origin yoksa (sunucunun kendisinden gelen istekler gibi), devam et.
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true)
+    } else {
+      callback(new Error('Bu site tarafından CORS politikası engellendi.'))
+    }
+  }
+};
+
+// cors middleware'ini bu yeni seçeneklerle kullanıyoruz.
+app.use(cors(corsOptions));
+// ===============================================
+
+// Diğer middleware'ler...
 app.use(express.json());
 app.use('/public', express.static(path.join(__dirname, 'public')));
 

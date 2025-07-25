@@ -1,30 +1,33 @@
+// routes/auth.routes.js
+
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
 
-const {register,login,logout,verifyEmail} = require('../controllers/auth.controller');
+// DÜZELTME: Yeni 'forgotPassword' ve 'resetPassword' fonksiyonlarını da çağırıyoruz.
+const { 
+    register, 
+    verifyEmail, 
+    login, 
+    logout, 
+    forgotPassword, 
+    resetPassword 
+} = require('../controllers/auth.controller');
+
 const { protect } = require('../middleware/auth.middleware');
 
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'public/uploads/profile_pictures/');
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const extension = path.extname(file.originalname);
-        cb(null, file.fieldname + '-' + uniqueSuffix + extension);
-    }
-});
-
-const upload = multer({ storage: storage });
-
-router.post('/register', upload.single('profileImage'), register);
-
+// Mevcut rotalar (Değişiklik yok)
+router.post('/register', register);
+router.get('/verify-email/:token', verifyEmail);
 router.post('/login', login);
-
 router.post('/logout', protect, logout);
 
-router.get('/verify-email/:token', verifyEmail);
+// --- YENİ EKLENEN ŞİFRE SIFIRLAMA ROTALARI ---
+
+// 1. Kullanıcı, şifre sıfırlama e-postası talep etmek için bu adrese e-postasını gönderir.
+router.post('/forgot-password', forgotPassword);
+
+// 2. Kullanıcı, e-postadaki linke tıkladıktan sonra, yeni şifresini bu adrese gönderir.
+//    URL'in içinde dinamik bir sıfırlama token'ı bekliyoruz.
+router.put('/reset-password/:token', resetPassword);
 
 module.exports = router;
